@@ -1,38 +1,90 @@
-//! Now is your chance to get creative. Choose a state machine that interests you and model it here.
-//! Get as fancy as you like. The only constraint is that it should be simple enough that you can
-//! realistically model it in an hour or two.
-//!
-//! Here are some ideas:
-//! - Board games:
-//!   - Chess
-//!   - Checkers
-//!   - Tic tac toe
-//! - Beaurocracies:
-//!   - Beauro of Motor Vehicles - maintains driving licenses and vehicle registrations.
-//!   - Public Utility Provider - Customers open accounts, consume the utility, pay their bill
-//!     periodically, maybe utility prices fluctuate
-//!   - Land ownership registry
-//! - Tokenomics:
-//!   - Token Curated Registry
-//!   - Prediction Market
-//!   - There's a game where there's a prize to be split among players and the prize grows over
-//!     time. Any player can stop it at any point and take most of the prize for themselves.
-//! - Social Systems:
-//!   - Social Graph
-//!   - Web of Trust
-//!   - Reputation System
-
 use super::StateMachine;
 
-pub struct State {}
+enum DayOfWeek {
+	Thursday,
+	Wednesday,
+	Friday,
+}
 
-pub enum Transition {}
+fn get_day_of_week() -> DayOfWeek {
+	DayOfWeek::Wednesday
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Identity {
+	RationalUtilityMaximizer,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Assignment {
+	BlockchainFromScratch,
+	AssignmentTwo,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Track {
+	Founder,
+	Developer,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Activity {
+	Code { assignment: Assignment },
+	AttendEvent,
+	DayDream { topic: String },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct State {
+	personal_identity: Identity,
+	track: Track,
+	activity: Activity,
+}
+
+pub enum Transition {
+	DecideOnNextCourseOfAction,
+	Code,
+	DayDream,
+}
 
 impl StateMachine for State {
 	type State = State;
 	type Transition = Transition;
 
-	fn next_state(_starting: &Self::State, _t: &Self::Transition) -> Self::State {
-		todo!()
+	fn next_state(initial_state: &Self::State, transition: &Self::Transition) -> Self::State {
+		let mut output_state = initial_state.clone();
+
+		match transition {
+			Transition::DecideOnNextCourseOfAction => {
+				if initial_state.personal_identity == Identity::RationalUtilityMaximizer
+					&& initial_state.track == Track::Developer
+				{
+					output_state.activity =
+						Activity::Code { assignment: Assignment::BlockchainFromScratch };
+				} else {
+					output_state.activity = Activity::AttendEvent
+				}
+			},
+			Transition::Code => match get_day_of_week() {
+				DayOfWeek::Wednesday => {
+					output_state.activity =
+						Activity::Code { assignment: Assignment::BlockchainFromScratch }
+				},
+				DayOfWeek::Thursday | DayOfWeek::Friday => {
+					output_state.activity = Activity::Code { assignment: Assignment::AssignmentTwo }
+				},
+				_ => {
+					output_state.activity =
+						Activity::DayDream { topic: String::from("Next Big Idea") }
+				},
+			},
+			Transition::DayDream => {
+				output_state.activity = Activity::DayDream {
+					topic: String::from("Find optimal use-case for Substrate"),
+				};
+			},
+			_ => {},
+		}
+		output_state
 	}
 }

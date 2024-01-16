@@ -38,12 +38,25 @@ pub struct Header {
 impl Header {
 	/// Returns a new valid genesis header.
 	fn genesis() -> Self {
-		todo!("Exercise 1")
+		Header { parent: 0, height: 0, extrinsic: 0, state: 0, consensus_digest: 0 }
 	}
 
 	/// Create and return a valid child header.
 	fn child(&self, extrinsic: u64) -> Self {
-		todo!("Exercise 2")
+		let mut header = self;
+		for i in 0..=1000 {
+			let mined_header = Header {
+				parent: hash(self),
+				height: self.height + 1,
+				extrinsic,
+				state: self.state + extrinsic,
+				consensus_digest: self.consensus_digest + i,
+			};
+			if hash(&mined_header) + i < THRESHOLD {
+				return mined_header;
+			}
+		}
+		header.clone()
 	}
 
 	/// Verify that all the given headers form a valid chain from this header to the tip.
@@ -51,7 +64,26 @@ impl Header {
 	/// In addition to all the rules we had before, we now need to check that the block hash
 	/// is below a specific threshold.
 	fn verify_sub_chain(&self, chain: &[Header]) -> bool {
-		todo!("Exercise 3")
+		let mut current_parent = Header::genesis();
+		for block in chain {
+			if block.parent != hash(&current_parent) {
+				return false;
+			}
+			if block.height != current_parent.height + 1 {
+				return false;
+			}
+			// Validate the extrinsic
+			if block.state != current_parent.state + block.extrinsic {
+				return false;
+			}
+			// Validate consensus
+			if hash(&block) + block.consensus_digest >= THRESHOLD {
+				return false;
+			}
+
+			current_parent = block.clone();
+		}
+		true
 	}
 
 	// After the blockchain ran for a while, a political rift formed in the community.
@@ -63,13 +95,63 @@ impl Header {
 	/// verify that the given headers form a valid chain.
 	/// In this case "valid" means that the STATE MUST BE EVEN.
 	fn verify_sub_chain_even(&self, chain: &[Header]) -> bool {
-		todo!("Exercise 4")
+		let mut current_parent = Header::genesis();
+		for block in chain {
+			if block.height > 2 {
+				if block.parent != hash(&current_parent) {
+					return false;
+				}
+				if block.height != current_parent.height + 1 {
+					return false;
+				}
+				// Validate the extrinsic
+				if block.state != current_parent.state + block.extrinsic {
+					return false;
+				}
+				// Validate consensus
+				if hash(&block) + block.consensus_digest >= THRESHOLD {
+					return false;
+				}
+
+				if block.state % 2 != 0 {
+					return false;
+				}
+			}
+
+			current_parent = block.clone();
+		}
+		true
 	}
 
 	/// verify that the given headers form a valid chain.
 	/// In this case "valid" means that the STATE MUST BE ODD.
 	fn verify_sub_chain_odd(&self, chain: &[Header]) -> bool {
-		todo!("Exercise 5")
+		let mut current_parent = Header::genesis();
+		for block in chain {
+			if block.height > 2 {
+				if block.parent != hash(&current_parent) {
+					return false;
+				}
+				if block.height != current_parent.height + 1 {
+					return false;
+				}
+				// Validate the extrinsic
+				if block.state != current_parent.state + block.extrinsic {
+					return false;
+				}
+				// Validate consensus
+				if hash(&block) + block.consensus_digest >= THRESHOLD {
+					return false;
+				}
+
+				if block.state % 2 == 0 {
+					return false;
+				}
+			}
+
+			current_parent = block.clone();
+		}
+		true
 	}
 }
 
@@ -90,7 +172,31 @@ impl Header {
 /// G -- 1 -- 2
 ///            \-- 3'-- 4'
 fn build_contentious_forked_chain() -> (Vec<Header>, Vec<Header>, Vec<Header>) {
-	todo!("Exercise 6")
+	let mut chain1: Vec<Header> = Vec::new();
+	let mut chain2: Vec<Header> = Vec::new();
+	let mut common: Vec<Header> = Vec::new();
+	let g = Header::genesis();
+
+	let b1 = g.child(1);
+	let b2 = b1.child(2);
+
+	let c1 = b2.child(1);
+	let c2 = c1.child(2);
+
+	let d1 = b2.child(2);
+	let d2 = d1.child(4);
+
+	common.push(g.clone());
+	common.push(b1.clone());
+	common.push(b2.clone());
+
+	chain1.push(c1);
+	chain1.push(c2);
+
+	chain2.push(d1);
+	chain2.push(d2);
+
+	(common, chain1, chain2)
 }
 
 // To run these tests: `cargo test bc_3`

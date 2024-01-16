@@ -4,7 +4,7 @@
 //! When a state transition spends bills, new bills are created in lesser or equal amount.
 
 use super::{StateMachine, User};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 /// This state machine models a multi-user currency system. It tracks a set of bills in
 /// circulation, and updates that set when money is transferred.
@@ -88,7 +88,64 @@ impl StateMachine for DigitalCashSystem {
 	type Transition = CashTransaction;
 
 	fn next_state(starting_state: &Self::State, t: &Self::Transition) -> Self::State {
-		todo!("Exercise 1")
+		let mut new_state = starting_state.clone();
+		match t {
+			CashTransaction::Mint { minter, amount } => {
+				new_state.bills.insert(Bill {
+					owner: *minter,
+					amount: *amount,
+					serial: starting_state.next_serial(),
+				});
+				new_state.increment_serial();
+			},
+			CashTransaction::Transfer { spends, receives } => {
+				let spent_total: u64 = spends.iter().map(|bill| bill.amount).sum();
+				if let Some(received_total) = receives
+					.iter()
+					.fold(Some(0u64), |acc, bill| acc.and_then(|sum| sum.checked_add(bill.amount)))
+				{
+					let serials_exist =
+						receives.iter().any(|bill| starting_state.bills.contains(bill));
+					let spend_serials: HashSet<u64> =
+						spends.iter().map(|bill| bill.serial).collect();
+					if serials_exist || spend_serials.len() != spends.len() {
+						return starting_state.clone();
+					}
+					if received_total <= spent_total {
+						let serial_amount_map: HashMap<u64, u64> = starting_state
+							.bills
+							.iter()
+							.map(|bill| (bill.serial, bill.amount))
+							.collect();
+						for bill in spends {
+							if received_total > 0 || receives.is_empty() {
+								// validate amount
+								if serial_amount_map.get(&bill.serial) != Some(&bill.amount) {
+									return starting_state.clone();
+								}
+								new_state.bills.remove(bill);
+							}
+						}
+
+						if !receives.is_empty() {
+							for bill in receives.iter() {
+								if bill.amount > 0 && bill.serial == new_state.next_serial() {
+									new_state.bills.insert(Bill {
+										owner: bill.owner,
+										amount: bill.amount,
+										serial: new_state.next_serial(),
+									});
+									new_state.increment_serial();
+								} else {
+									return starting_state.clone();
+								}
+							}
+						}
+					}
+				}
+			},
+		}
+		new_state
 	}
 }
 

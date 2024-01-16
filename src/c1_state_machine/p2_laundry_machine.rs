@@ -40,7 +40,61 @@ impl StateMachine for ClothesMachine {
 	type Transition = ClothesAction;
 
 	fn next_state(starting_state: &ClothesState, t: &ClothesAction) -> ClothesState {
-		todo!("Exercise 3")
+		match starting_state {
+			ClothesState::Tattered => ClothesState::Tattered,
+			_ => match t {
+				ClothesAction::Dry => {
+					match starting_state {
+						ClothesState::Wet(life) | ClothesState::Clean(life ) => {
+							if *life == 1 {
+								ClothesState::Tattered
+							} else {
+								ClothesState::Clean(*life - 1)
+							}
+						},
+						ClothesState::Dirty(life) => {
+							if *life == 1 {
+								ClothesState::Tattered
+							} else {
+								ClothesState::Dirty(*life-1)
+							}
+						},
+						_ => unreachable!()
+					}
+				},
+				ClothesAction::Wear => {
+					match starting_state {
+						ClothesState::Clean(life) => {
+							if *life == 1 {
+								ClothesState::Tattered
+							} else {
+								ClothesState::Dirty(*life - 1)
+							}
+						},
+						ClothesState::Dirty(life) | ClothesState::Wet(life) => {
+							if *life == 1 {
+								ClothesState::Tattered
+							} else {
+								ClothesState::Dirty(*life - 1)
+							}
+						},
+						_ => unreachable!()
+					}
+				},
+				ClothesAction::Wash => {
+					match starting_state {
+						ClothesState::Clean(life) | ClothesState::Dirty(life) | ClothesState::Wet(life) => {
+							if *life == 1 {
+								ClothesState::Tattered
+							} else {
+								ClothesState::Wet(*life - 1)
+							}
+						},
+						_ => unreachable!()
+					}
+				}
+			}
+		}
 	}
 }
 
